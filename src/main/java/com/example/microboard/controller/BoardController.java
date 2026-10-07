@@ -34,16 +34,24 @@ public class BoardController {
         return ResponseEntity.ok(userBoards);
     }
 
+    // API tạo một Bảng mới (Đã vá lỗi NullPointerException)
     @PostMapping
-    public Board createBoard(@RequestBody Board board, Principal principal) {
+    public ResponseEntity<?> createBoard(@RequestBody Board board, Principal principal) {
+        // 1. Chặn đứng lỗi nếu không có danh tính (mất Token hoặc Token hết hạn)
+        if (principal == null) {
+            return ResponseEntity.status(401).body("Từ chối truy cập: Không tìm thấy Token xác thực hoặc phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+        }
+        
+        // 2. Logic xử lý bình thường nếu Token hợp lệ
         String userEmail = principal.getName(); 
         User currentUser = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
             
-        // Dùng setOwner và gán trực tiếp đối tượng User
         board.setOwner(currentUser);
+        Board savedBoard = boardRepository.save(board);
         
-        return boardRepository.save(board);
+        // 3. Trả về mã 200 OK kèm dữ liệu bảng vừa tạo
+        return ResponseEntity.ok(savedBoard); 
     }
 
     // API Xóa một bảng theo ID
