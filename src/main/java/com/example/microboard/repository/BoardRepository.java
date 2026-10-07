@@ -1,10 +1,11 @@
 package com.example.microboard.repository;
 
 import com.example.microboard.entity.Board;
+import com.example.microboard.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 import java.util.List;
-@Repository
+
 public interface BoardRepository extends JpaRepository<Board, Long> {
-    List<Board> findByOwnerId(Integer ownerId);
+    // Đổi findByOwnerId thành findByOwner, nhận tham số là đối tượng User
+    List<Board> findByOwner(User owner); 
 }
