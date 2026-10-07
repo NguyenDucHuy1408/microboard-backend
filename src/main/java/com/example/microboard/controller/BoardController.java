@@ -1,14 +1,16 @@
 package com.example.microboard.controller;
 
 import com.example.microboard.entity.Board;
+import com.example.microboard.entity.User;
 import com.example.microboard.repository.BoardRepository;
+import com.example.microboard.repository.UserRepository; // 1. Bổ sung import UserRepository
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
-import com.example.microboard.entity.User;
+
 @RestController
 @CrossOrigin(origins = "*") // Mở CORS cho Frontend gọi
 @RequestMapping("/api/boards")
@@ -16,6 +18,10 @@ public class BoardController {
 
     @Autowired
     private BoardRepository boardRepository;
+
+    // 2. VÁ LỖI 1: Khai báo (Inject) UserRepository để Spring Boot có thể sử dụng
+    @Autowired
+    private UserRepository userRepository; 
 
     // API lấy toàn bộ danh sách các Bảng
     @GetMapping
@@ -27,8 +33,8 @@ public class BoardController {
         User currentUser = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
             
-        // 3. Chỉ lấy các Board có owner_id khớp với ID của user này
-        List<Board> userBoards = boardRepository.findByOwnerId(currentUser.getId());
+        // 3. VÁ LỖI 2: Thêm .intValue() để chuyển ID từ kiểu Long sang Integer
+        List<Board> userBoards = boardRepository.findByOwnerId(currentUser.getId().intValue());
         
         return ResponseEntity.ok(userBoards);
     }
