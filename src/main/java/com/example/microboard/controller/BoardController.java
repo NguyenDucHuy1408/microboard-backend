@@ -45,4 +45,11 @@ public class BoardController {
         
         return boardRepository.save(board);
     }
+
+    // API Xóa một bảng theo ID
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteBoard(@PathVariable Long id) {
+        boardRepository.deleteById(id);
+        return ResponseEntity.ok().build();
+    }
 }
