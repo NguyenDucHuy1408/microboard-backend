@@ -10,40 +10,48 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-// TODO: Nếu IDE báo đỏ chữ JwtFilter, bạn hãy bấm Alt+Enter để Import file Filter của bạn vào nhé
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // 1. Nhúng bộ lọc kiểm tra Token của bạn vào đây 
-    // (Lưu ý: Nếu file code xử lý JWT của bạn tên là JwtAuthFilter hay tên khác, hãy đổi chữ JwtFilter bên dưới cho khớp nhé)
     @Autowired
     private JwtFilter jwtFilter;
 
-    // 2. Khai báo công cụ băm mật khẩu Bcrypt
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // 3. Cấu hình phân quyền truy cập nghiêm ngặt
+    // 1. Cấu hình quy tắc CORS toàn cục cho máy chủ
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("*")); // Mở cửa cho mọi domain (bao gồm Vercel)
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+            // 2. Kích hoạt CORS ngay tại vòng gửi xe của Security
+            .cors(cors -> cors.configurationSource(corsConfigurationSource())) 
             .csrf(csrf -> csrf.disable()) 
             .authorizeHttpRequests(auth -> auth
-                // BẮT BUỘC: Cho phép các request thăm dò (OPTIONS) của Frontend đi qua để không bị lỗi CORS
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                
-                // Mở cửa tự do cho 2 API Đăng nhập và Đăng ký
                 .requestMatchers("/api/users/login", "/api/users/register").permitAll()
-                
-                // TẤT CẢ các API còn lại (như /api/boards, /api/tasks) đều phải xuất trình Token
                 .anyRequest().authenticated() 
             )
-            // Đặt bộ lọc quét Token của bạn lên trước trạm kiểm tra mặc định của Spring
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
