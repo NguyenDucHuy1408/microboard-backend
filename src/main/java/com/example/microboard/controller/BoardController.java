@@ -33,7 +33,8 @@ public class BoardController {
         User currentUser = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
             
-        List<Board> userBoards = boardRepository.findByOwner(currentUser);
+        //List<Board> userBoards = boardRepository.findByOwner(currentUser);
+        List<Board> userBoards = boardRepository.findAll();
         return ResponseEntity.ok(userBoards);
     }
 
