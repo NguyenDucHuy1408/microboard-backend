@@ -3,9 +3,11 @@ package com.example.microboard.controller;
 import com.example.microboard.entity.Board;
 import com.example.microboard.entity.User;
 import com.example.microboard.repository.BoardRepository;
+import com.example.microboard.repository.TaskRepository; // 1. Bổ sung import TaskRepository
 import com.example.microboard.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional; // 2. Bổ sung import Transactional
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -20,7 +22,10 @@ public class BoardController {
     private BoardRepository boardRepository;
 
     @Autowired
-    private UserRepository userRepository; 
+    private UserRepository userRepository;
+
+    @Autowired
+    private TaskRepository taskRepository; // 3. Inject TaskRepository vào Controller
 
     @GetMapping
     public ResponseEntity<List<Board>> getBoards(Principal principal) {
@@ -28,36 +33,35 @@ public class BoardController {
         User currentUser = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
             
-        // Truyền thẳng đối tượng currentUser vào để tìm kiếm
         List<Board> userBoards = boardRepository.findByOwner(currentUser);
-        
         return ResponseEntity.ok(userBoards);
     }
 
-    // API tạo một Bảng mới (Đã vá lỗi NullPointerException)
     @PostMapping
     public ResponseEntity<?> createBoard(@RequestBody Board board, Principal principal) {
-        // 1. Chặn đứng lỗi nếu không có danh tính (mất Token hoặc Token hết hạn)
         if (principal == null) {
-            return ResponseEntity.status(401).body("Từ chối truy cập: Không tìm thấy Token xác thực hoặc phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+            return ResponseEntity.status(401).body("Từ chối truy cập: Không tìm thấy Token xác thực.");
         }
         
-        // 2. Logic xử lý bình thường nếu Token hợp lệ
         String userEmail = principal.getName(); 
         User currentUser = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
             
         board.setOwner(currentUser);
         Board savedBoard = boardRepository.save(board);
-        
-        // 3. Trả về mã 200 OK kèm dữ liệu bảng vừa tạo
         return ResponseEntity.ok(savedBoard); 
     }
 
-    // API Xóa một bảng theo ID
+    // 4. CẬP NHẬT API XÓA: Dọn sạch Task con trước rồi mới xóa Board
     @DeleteMapping("/{id}")
+    @Transactional
     public ResponseEntity<?> deleteBoard(@PathVariable Long id) {
+        // Bước 1: Xóa toàn bộ task nằm trong bảng này
+        taskRepository.deleteByBoardId(id);
+        
+        // Bước 2: Xóa chính cái bảng đó
         boardRepository.deleteById(id);
+        
         return ResponseEntity.ok().build();
     }
 }
